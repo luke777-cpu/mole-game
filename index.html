@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두더지 잡기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; display: flex; justify-content: center; padding: 1.5rem 1rem; min-height: 100vh; }
+  #wrap { width: 100%; max-width: 420px; }
+  h1 { font-size: 20px; font-weight: 500; text-align: center; margin-bottom: 1rem; color: #2c2c2a; }
+  #score-row { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .stat { flex: 1; background: #fff; border-radius: 10px; border: 0.5px solid #ddd; padding: 0.6rem 0.8rem; text-align: center; }
+  .stat-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+  .stat-val { font-size: 20px; font-weight: 500; color: #2c2c2a; }
+  #timer-bar { height: 6px; border-radius: 3px; background: #ddd; margin-bottom: 1rem; overflow: hidden; }
+  #timer-fill { height: 100%; width: 100%; border-radius: 3px; background: #1D9E75; transition: width 0.1s linear; }
+  #grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1rem; }
+  .hole { aspect-ratio: 1; border-radius: 12px; background: #ebebeb; border: 0.5px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 42px; cursor: pointer; position: relative; overflow: hidden; transition: background 0.1s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .hole.active { background: #E1F5EE; border-color: #5DCAA5; }
+  .hole.bomb { background: #FCEBEB; border-color: #F09595; }
+  .hole.hit { background: #9FE1CB; animation: pop 0.18s ease-out; }
+  .hole.miss { background: #F7C1C1; animation: shake 0.18s; }
+  .mole { font-size: 42px; display: none; pointer-events: none; }
+  .hole.active .mole, .hole.bomb .mole { display: block; }
+  @keyframes pop { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 33% { transform: translateX(-6px); } 66% { transform: translateX(6px); } }
+  #msg { text-align: center; font-size: 15px; color: #888; min-height: 24px; margin-bottom: 0.75rem; }
+  #btn-row { display: flex; gap: 10px; }
+  button { flex: 1; padding: 10px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; color: #2c2c2a; font-size: 14px; cursor: pointer; transition: background 0.12s; }
+  button:hover { background: #ebebeb; }
+  button:active { transform: scale(0.97); }
+  #hit-flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.1s; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>🐭 두더지 잡기</h1>
+  <div id="score-row">
+    <div class="stat"><div class="stat-label">점수</div><div class="stat-val" id="score">0</div></div>
+    <div class="stat"><div class="stat-label">콤보</div><div class="stat-val" id="combo">x1</div></div>
+    <div class="stat"><div class="stat-label">남은 시간</div><div class="stat-val" id="time">30</div></div>
+    <div class="stat"><div class="stat-label">레벨</div><div class="stat-val" id="level">1</div></div>
+  </div>
+  <div id="timer-bar"><div id="timer-fill"></div></div>
+  <div id="grid">
+    <div class="hole" data-i="0"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="1"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="2"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="3"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="4"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="5"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="6"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="7"><div class="mole">🐭</div></div>
+    <div class="hole" data-i="8"><div class="mole">🐭</div></div>
+  </div>
+  <div id="msg">탭해서 시작!</div>
+  <div id="btn-row">
+    <button id="btn-start">시작</button>
+    <button id="btn-reset">다시</button>
+  </div>
+</div>
+<div id="hit-flash"></div>
+
+<script>
+const holes = Array.from(document.querySelectorAll('.hole'));
+const scoreEl = document.getElementById('score');
+const comboEl = document.getElementById('combo');
+const timeEl = document.getElementById('time');
+const levelEl = document.getElementById('level');
+const timerFill = document.getElementById('timer-fill');
+const msgEl = document.getElementById('msg');
+const flash = document.getElementById('hit-flash');
+
+const TOTAL_TIME = 30;
+let score = 0, combo = 1, level = 1, hits = 0;
+let running = false;
+let timeLeft = TOTAL_TIME;
+let activeHoles = {};
+let timers = [];
+let tickTimer = null;
+
+function getLevelConfig() {
+  if (level <= 2) return { moleTime: 1400, bombChance: 0,    maxMoles: 2, interval: 900 };
+  if (level <= 4) return { moleTime: 1100, bombChance: 0.15, maxMoles: 3, interval: 750 };
+  if (level <= 6) return { moleTime: 850,  bombChance: 0.2,  maxMoles: 3, interval: 600 };
+  return              { moleTime: 650,  bombChance: 0.25, maxMoles: 4, interval: 480 };
+}
+
+function clearHole(i) {
+  holes[i].classList.remove('active','bomb','hit','miss');
+  holes[i].querySelector('.mole').textContent = '🐭';
+  delete activeHoles[i];
+}
+
+function spawnMole() {
+  if (!running) return;
+  const cfg = getLevelConfig();
+  if (Object.keys(activeHoles).length >= cfg.maxMoles) { scheduleNext(); return; }
+  const avail = holes.map((_,i) => i).filter(i => !activeHoles[i]);
+  if (!avail.length) { scheduleNext(); return; }
+  const i = avail[Math.floor(Math.random() * avail.length)];
+  const isBomb = Math.random() < cfg.bombChance;
+  holes[i].classList.add(isBomb ? 'bomb' : 'active');
+  holes[i].querySelector('.mole').textContent = isBomb ? '💣' : '🐭';
+  activeHoles[i] = isBomb ? 'bomb' : 'mole';
+  const t = setTimeout(() => {
+    if (activeHoles[i] && running) {
+      if (activeHoles[i] === 'mole') { combo = 1; updateCombo(); }
+      clearHole(i);
+    }
+  }, cfg.moleTime);
+  timers.push(t);
+  scheduleNext();
+}
+
+function scheduleNext() {
+  if (!running) return;
+  const cfg = getLevelConfig();
+  const jitter = cfg.interval * 0.4;
+  const t = setTimeout(spawnMole, cfg.interval - jitter/2 + Math.random() * jitter);
+  timers.push(t);
+}
+
+function updateCombo() {
+  comboEl.textContent = combo > 1 ? 'x' + combo : 'x1';
+  comboEl.style.color = combo >= 5 ? '#0F6E56' : combo >= 3 ? '#BA7517' : '#2c2c2a';
+}
+
+function doFlash(color) {
+  flash.style.background = color;
+  flash.style.opacity = '1';
+  setTimeout(() => { flash.style.opacity = '0'; }, 120);
+}
+
+holes.forEach(hole => {
+  hole.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const i = parseInt(hole.dataset.i);
+    if (!running) { startGame(); return; }
+    if (!activeHoles[i]) return;
+    if (activeHoles[i] === 'bomb') {
+      score = Math.max(0, score - 5 * combo);
+      combo = 1; updateCombo();
+      hole.classList.remove('bomb'); hole.classList.add('miss');
+      doFlash('rgba(226,75,74,0.15)');
+      msgEl.textContent = '💣 폭탄! -5점'; msgEl.style.color = '#A32D2D';
+      setTimeout(() => clearHole(i), 300);
+    } else {
+      const pts = 10 * combo;
+      score += pts; hits++;
+      if (hits % 5 === 0) { level = Math.min(8, level + 1); levelEl.textContent = level; }
+      hole.classList.remove('active'); hole.classList.add('hit');
+      combo++; updateCombo();
+      doFlash('rgba(29,158,117,0.15)');
+      msgEl.textContent = combo > 2 ? '콤보 x' + combo + '! +' + pts + '점 🔥' : '+' + pts + '점';
+      msgEl.style.color = combo > 2 ? '#0F6E56' : '#888';
+      setTimeout(() => clearHole(i), 200);
+    }
+    scoreEl.textContent = score;
+  });
+});
+
+function startGame() {
+  if (running) return;
+  score = 0; combo = 1; level = 1; hits = 0; timeLeft = TOTAL_TIME;
+  activeHoles = {}; timers.forEach(clearTimeout); timers = [];
+  holes.forEach((_,i) => clearHole(i));
+  scoreEl.textContent = 0; comboEl.textContent = 'x1';
+  comboEl.style.color = '#2c2c2a';
+  levelEl.textContent = 1;
+  timerFill.style.width = '100%'; timerFill.style.background = '#1D9E75';
+  msgEl.textContent = '두더지를 잡아라!'; msgEl.style.color = '#888';
+  running = true;
+  tickTimer = setInterval(() => {
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    const pct = Math.round((timeLeft / TOTAL_TIME) * 100);
+    timerFill.style.width = pct + '%';
+    timerFill.style.background = pct > 50 ? '#1D9E75' : pct > 25 ? '#EF9F27' : '#E24B4A';
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+  spawnMole();
+}
+
+function endGame() {
+  running = false;
+  clearInterval(tickTimer);
+  timers.forEach(clearTimeout); timers = [];
+  holes.forEach((_,i) => clearHole(i));
+  const grade = score >= 300 ? '전설의 두더지 사냥꾼 🏆' : score >= 150 ? '숙련된 사냥꾼 🥈' : score >= 80 ? '연습이 필요해 🥉' : '잠이 덜 깼군요 😴';
+  msgEl.textContent = '종료! ' + score + '점 — ' + grade;
+  msgEl.style.color = '#2c2c2a';
+  timerFill.style.width = '0%';
+}
+
+document.getElementById('btn-start').addEventListener('click', () => { if (!running) startGame(); });
+document.getElementById('btn-reset').addEventListener('click', () => {
+  running = false; clearInterval(tickTimer);
+  timers.forEach(clearTimeout); timers = [];
+  holes.forEach((_,i) => clearHole(i));
+  score = 0; combo = 1; level = 1; timeLeft = TOTAL_TIME;
+  scoreEl.textContent = 0; comboEl.textContent = 'x1';
+  timeEl.textContent = TOTAL_TIME; levelEl.textContent = 1;
+  timerFill.style.width = '100%'; timerFill.style.background = '#1D9E75';
+  msgEl.textContent = '탭해서 시작!'; msgEl.style.color = '#888';
+  activeHoles = {};
+});
+</script>
+</body>
+</html>
