@@ -5,207 +5,319 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>두더지 잡기</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; display: flex; justify-content: center; padding: 1.5rem 1rem; min-height: 100vh; }
-  #wrap { width: 100%; max-width: 420px; }
-  h1 { font-size: 20px; font-weight: 500; text-align: center; margin-bottom: 1rem; color: #2c2c2a; }
-  #score-row { display: flex; gap: 10px; margin-bottom: 1rem; }
-  .stat { flex: 1; background: #fff; border-radius: 10px; border: 0.5px solid #ddd; padding: 0.6rem 0.8rem; text-align: center; }
-  .stat-label { font-size: 11px; color: #888; margin-bottom: 2px; }
-  .stat-val { font-size: 20px; font-weight: 500; color: #2c2c2a; }
-  #timer-bar { height: 6px; border-radius: 3px; background: #ddd; margin-bottom: 1rem; overflow: hidden; }
-  #timer-fill { height: 100%; width: 100%; border-radius: 3px; background: #1D9E75; transition: width 0.1s linear; }
-  #grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1rem; }
-  .hole { aspect-ratio: 1; border-radius: 12px; background: #ebebeb; border: 0.5px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 42px; cursor: pointer; position: relative; overflow: hidden; transition: background 0.1s; user-select: none; -webkit-tap-highlight-color: transparent; }
-  .hole.active { background: #E1F5EE; border-color: #5DCAA5; }
-  .hole.bomb { background: #FCEBEB; border-color: #F09595; }
-  .hole.hit { background: #9FE1CB; animation: pop 0.18s ease-out; }
-  .hole.miss { background: #F7C1C1; animation: shake 0.18s; }
-  .mole { font-size: 42px; display: none; pointer-events: none; }
-  .hole.active .mole, .hole.bomb .mole { display: block; }
-  @keyframes pop { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
-  @keyframes shake { 0%,100% { transform: translateX(0); } 33% { transform: translateX(-6px); } 66% { transform: translateX(6px); } }
-  #msg { text-align: center; font-size: 15px; color: #888; min-height: 24px; margin-bottom: 0.75rem; }
-  #btn-row { display: flex; gap: 10px; }
-  button { flex: 1; padding: 10px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; color: #2c2c2a; font-size: 14px; cursor: pointer; transition: background 0.12s; }
-  button:hover { background: #ebebeb; }
-  button:active { transform: scale(0.97); }
-  #hit-flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.1s; }
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  :root{--green:#1D9E75;--gl:#E1F5EE;--gd:#085041;--red:#E24B4A;--amb:#EF9F27;--bg:#f0ede6;--card:#fff;--text:#1a1a18;--muted:#888780;--bd:#ddd;--r:13px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh;display:flex;justify-content:center;padding:1.5rem 1rem 3rem;}
+  #app{width:100%;max-width:440px;}
+  h1{font-family:'Black Han Sans',sans-serif;font-size:26px;text-align:center;color:var(--text);margin-bottom:0.2rem;}
+  .subtitle{text-align:center;font-size:12px;color:var(--muted);margin-bottom:1.1rem;}
+  #tabs{display:flex;gap:6px;margin-bottom:1.1rem;}
+  .tab{flex:1;padding:9px;border:1.5px solid var(--bd);border-radius:10px;background:transparent;font-size:14px;font-family:'Noto Sans KR',sans-serif;color:var(--muted);cursor:pointer;transition:all .15s;font-weight:500;}
+  .tab.active{border-color:var(--green);color:var(--green);background:var(--gl);}
+  .panel{display:none;}.panel.active{display:block;}
+  #score-row{display:flex;gap:8px;margin-bottom:.8rem;}
+  .stat{flex:1;background:var(--card);border-radius:10px;border:.5px solid var(--bd);padding:.55rem .5rem;text-align:center;}
+  .stat-label{font-size:10px;color:var(--muted);margin-bottom:2px;}
+  .stat-val{font-size:19px;font-weight:700;color:var(--text);}
+  #timer-bar{height:7px;border-radius:4px;background:#ddd;margin-bottom:.8rem;overflow:hidden;}
+  #timer-fill{height:100%;width:100%;border-radius:4px;background:var(--green);transition:width .1s linear,background .3s;}
+  #grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:.8rem;}
+  .hole{aspect-ratio:1;border-radius:var(--r);background:#e8e5de;border:2px solid #d4d0c8;display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer;overflow:hidden;transition:background .1s,transform .08s;user-select:none;-webkit-tap-highlight-color:transparent;}
+  .hole:active{transform:scale(.93);}
+  .hole.active{background:var(--gl);border-color:#5DCAA5;}
+  .hole.bomb{background:#FCEBEB;border-color:#F09595;}
+  .hole.hit{background:#9FE1CB;animation:pop .2s ease-out;}
+  .hole.miss{background:#F7C1C1;animation:shake .2s;}
+  .mole{display:none;pointer-events:none;line-height:1;}
+  .hole.active .mole,.hole.bomb .mole{display:block;}
+  @keyframes pop{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}33%{transform:translateX(-7px)}66%{transform:translateX(7px)}}
+  #msg{text-align:center;font-size:15px;font-weight:500;color:var(--muted);min-height:26px;margin-bottom:.7rem;}
+  #btn-row{display:flex;gap:8px;}
+  .action{flex:1;padding:11px;border:1.5px solid var(--bd);border-radius:10px;background:var(--card);font-family:'Noto Sans KR',sans-serif;color:var(--text);font-size:14px;font-weight:500;cursor:pointer;transition:all .12s;}
+  .action:hover{background:var(--gl);border-color:var(--green);color:var(--green);}
+  .action:active{transform:scale(.97);}
+  .action.primary{background:var(--green);color:#fff;border-color:var(--green);}
+  .action.primary:hover{background:var(--gd);border-color:var(--gd);color:#fff;}
+  /* modal */
+  #name-modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:1rem;}
+  #name-modal.show{display:flex;}
+  .modal-box{background:var(--card);border-radius:18px;padding:1.75rem 1.5rem;width:100%;max-width:310px;text-align:center;}
+  .modal-box h2{font-size:18px;font-weight:700;margin-bottom:.35rem;color:var(--text);}
+  .modal-box p{font-size:13px;color:var(--muted);margin-bottom:1rem;}
+  .final-score{font-size:38px;font-weight:700;color:var(--green);margin-bottom:1rem;}
+  .modal-box input{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:10px;font-size:16px;font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--bg);margin-bottom:.85rem;outline:none;transition:border-color .15s;}
+  .modal-box input:focus{border-color:var(--green);}
+  .modal-btns{display:flex;gap:8px;}
+  .modal-btns button{flex:1;padding:10px;border-radius:10px;font-size:14px;font-family:'Noto Sans KR',sans-serif;font-weight:500;cursor:pointer;transition:all .12s;border:1.5px solid var(--bd);background:transparent;color:var(--text);}
+  .modal-btns button.submit{background:var(--green);color:#fff;border-color:var(--green);}
+  .modal-btns button:active{transform:scale(.97);}
+  /* board */
+  #board-list{display:flex;flex-direction:column;gap:8px;}
+  .board-item{background:var(--card);border-radius:12px;border:.5px solid var(--bd);display:flex;align-items:center;gap:12px;padding:.75rem 1rem;}
+  .board-rank{font-size:18px;font-weight:700;min-width:30px;text-align:center;color:var(--muted);}
+  .board-rank.gold{color:#c8922a;}.board-rank.silver{color:#8a8a8a;}.board-rank.bronze{color:#8a5c3e;}
+  .board-name{flex:1;font-size:15px;font-weight:500;color:var(--text);}
+  .board-score{font-size:17px;font-weight:700;color:var(--green);}
+  .board-time{font-size:11px;color:var(--muted);text-align:right;margin-top:2px;}
+  #board-status{text-align:center;color:var(--muted);font-size:14px;padding:2rem 0;}
+  #board-refresh{display:block;margin:1rem auto 0;padding:8px 20px;border:1.5px solid var(--bd);border-radius:8px;background:transparent;font-size:13px;font-family:'Noto Sans KR',sans-serif;color:var(--muted);cursor:pointer;}
+  #board-refresh:hover{border-color:var(--green);color:var(--green);}
+  #hit-flash{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .12s;z-index:50;}
 </style>
 </head>
 <body>
-<div id="wrap">
+<div id="app">
   <h1>🐭 두더지 잡기</h1>
-  <div id="score-row">
-    <div class="stat"><div class="stat-label">점수</div><div class="stat-val" id="score">0</div></div>
-    <div class="stat"><div class="stat-label">콤보</div><div class="stat-val" id="combo">x1</div></div>
-    <div class="stat"><div class="stat-label">남은 시간</div><div class="stat-val" id="time">30</div></div>
-    <div class="stat"><div class="stat-label">레벨</div><div class="stat-val" id="level">1</div></div>
+  <p class="subtitle">두더지를 잡고 순위에 올라라!</p>
+  <div id="tabs">
+    <button class="tab active" onclick="switchTab('game')">게임</button>
+    <button class="tab" onclick="switchTab('board')">🏆 순위표</button>
   </div>
-  <div id="timer-bar"><div id="timer-fill"></div></div>
-  <div id="grid">
-    <div class="hole" data-i="0"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="1"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="2"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="3"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="4"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="5"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="6"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="7"><div class="mole">🐭</div></div>
-    <div class="hole" data-i="8"><div class="mole">🐭</div></div>
+
+  <div class="panel active" id="panel-game">
+    <div id="score-row">
+      <div class="stat"><div class="stat-label">점수</div><div class="stat-val" id="score">0</div></div>
+      <div class="stat"><div class="stat-label">콤보</div><div class="stat-val" id="combo">x1</div></div>
+      <div class="stat"><div class="stat-label">시간</div><div class="stat-val" id="time">30</div></div>
+      <div class="stat"><div class="stat-label">레벨</div><div class="stat-val" id="level">1</div></div>
+    </div>
+    <div id="timer-bar"><div id="timer-fill"></div></div>
+    <div id="grid">
+      <div class="hole" data-i="0"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="1"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="2"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="3"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="4"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="5"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="6"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="7"><div class="mole">🐭</div></div>
+      <div class="hole" data-i="8"><div class="mole">🐭</div></div>
+    </div>
+    <div id="msg">탭해서 시작!</div>
+    <div id="btn-row">
+      <button class="action primary" id="btn-start">시작</button>
+      <button class="action" id="btn-reset">다시</button>
+    </div>
   </div>
-  <div id="msg">탭해서 시작!</div>
-  <div id="btn-row">
-    <button id="btn-start">시작</button>
-    <button id="btn-reset">다시</button>
+
+  <div class="panel" id="panel-board">
+    <div id="board-status">불러오는 중...</div>
+    <div id="board-list"></div>
+    <button id="board-refresh" onclick="loadBoard()">새로고침</button>
+  </div>
+</div>
+
+<div id="name-modal">
+  <div class="modal-box">
+    <h2>게임 종료!</h2>
+    <div class="final-score" id="modal-score">0점</div>
+    <p>이름을 입력하고 순위에 올려보세요</p>
+    <input type="text" id="name-input" placeholder="닉네임 (최대 8자)" maxlength="8"/>
+    <div class="modal-btns">
+      <button onclick="closeModal()">건너뛰기</button>
+      <button class="submit" onclick="submitScore()">등록!</button>
+    </div>
   </div>
 </div>
 <div id="hit-flash"></div>
 
 <script>
+// ── STORAGE (GitHub Pages: localStorage 기반 공유 불가, JSONBin.io 활용) ──
+// 무료 공개 API 서버로 리더보드 저장
+const BIN_URL = 'https://api.jsonbin.io/v3/b';
+const BIN_KEY = '$2a$10$ecRF5xF2oIXZCN16Wm76N.oCoZifXlNYPcySv0LSYGbyn9/MzbYCO';
+let BIN_ID = localStorage.getItem('mole-bin-id') || '';
+
+async function getBoard() {
+  if (!BIN_ID) return [];
+  try {
+    const r = await fetch(BIN_URL + '/' + BIN_ID + '/latest', {
+      headers: { 'X-Master-Key': BIN_KEY }
+    });
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.record?.board || [];
+  } catch { return []; }
+}
+
+async function saveBoard(board) {
+  if (!BIN_ID) {
+    // 첫 번째 저장: bin 생성
+    const r = await fetch(BIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY, 'X-Bin-Public': 'true' },
+      body: JSON.stringify({ board })
+    });
+    if (r.ok) {
+      const d = await r.json();
+      BIN_ID = d.metadata?.id;
+      if (BIN_ID) localStorage.setItem('mole-bin-id', BIN_ID);
+    }
+  } else {
+    await fetch(BIN_URL + '/' + BIN_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
+      body: JSON.stringify({ board })
+    });
+  }
+}
+
+// ── GAME ──────────────────────────────────────────────────────────────────
 const holes = Array.from(document.querySelectorAll('.hole'));
-const scoreEl = document.getElementById('score');
-const comboEl = document.getElementById('combo');
-const timeEl = document.getElementById('time');
-const levelEl = document.getElementById('level');
-const timerFill = document.getElementById('timer-fill');
-const msgEl = document.getElementById('msg');
-const flash = document.getElementById('hit-flash');
+const scoreEl=document.getElementById('score'), comboEl=document.getElementById('combo');
+const timeEl=document.getElementById('time'), levelEl=document.getElementById('level');
+const timerFill=document.getElementById('timer-fill'), msgEl=document.getElementById('msg');
+const flash=document.getElementById('hit-flash');
+const TOTAL=30;
+let score=0,combo=1,level=1,hits=0,running=false,timeLeft=TOTAL;
+let activeHoles={},timers=[],tick=null,finalScore=0;
 
-const TOTAL_TIME = 30;
-let score = 0, combo = 1, level = 1, hits = 0;
-let running = false;
-let timeLeft = TOTAL_TIME;
-let activeHoles = {};
-let timers = [];
-let tickTimer = null;
-
-function getLevelConfig() {
-  if (level <= 2) return { moleTime: 1400, bombChance: 0,    maxMoles: 2, interval: 900 };
-  if (level <= 4) return { moleTime: 1100, bombChance: 0.15, maxMoles: 3, interval: 750 };
-  if (level <= 6) return { moleTime: 850,  bombChance: 0.2,  maxMoles: 3, interval: 600 };
-  return              { moleTime: 650,  bombChance: 0.25, maxMoles: 4, interval: 480 };
+function cfg(){
+  if(level<=2)return{mt:1400,bc:0,mx:2,iv:900};
+  if(level<=4)return{mt:1100,bc:.15,mx:3,iv:750};
+  if(level<=6)return{mt:850,bc:.2,mx:3,iv:600};
+  return{mt:650,bc:.25,mx:4,iv:480};
 }
-
-function clearHole(i) {
-  holes[i].classList.remove('active','bomb','hit','miss');
-  holes[i].querySelector('.mole').textContent = '🐭';
-  delete activeHoles[i];
+function clr(i){holes[i].classList.remove('active','bomb','hit','miss');holes[i].querySelector('.mole').textContent='🐭';delete activeHoles[i];}
+function spawn(){
+  if(!running)return;
+  const c=cfg();
+  if(Object.keys(activeHoles).length>=c.mx){sched();return;}
+  const av=holes.map((_,i)=>i).filter(i=>!activeHoles[i]);
+  if(!av.length){sched();return;}
+  const i=av[Math.floor(Math.random()*av.length)];
+  const bomb=Math.random()<c.bc;
+  holes[i].classList.add(bomb?'bomb':'active');
+  holes[i].querySelector('.mole').textContent=bomb?'💣':'🐭';
+  activeHoles[i]=bomb?'bomb':'mole';
+  timers.push(setTimeout(()=>{if(activeHoles[i]&&running){if(activeHoles[i]==='mole'){combo=1;uc();}clr(i);}},c.mt));
+  sched();
 }
+function sched(){if(!running)return;const c=cfg();const j=c.iv*.4;timers.push(setTimeout(spawn,c.iv-j/2+Math.random()*j));}
+function uc(){comboEl.textContent=combo>1?'x'+combo:'x1';comboEl.style.color=combo>=5?'#0F6E56':combo>=3?'#BA7517':'var(--text)';}
+function doFlash(col){flash.style.background=col;flash.style.opacity='1';setTimeout(()=>{flash.style.opacity='0';},130);}
 
-function spawnMole() {
-  if (!running) return;
-  const cfg = getLevelConfig();
-  if (Object.keys(activeHoles).length >= cfg.maxMoles) { scheduleNext(); return; }
-  const avail = holes.map((_,i) => i).filter(i => !activeHoles[i]);
-  if (!avail.length) { scheduleNext(); return; }
-  const i = avail[Math.floor(Math.random() * avail.length)];
-  const isBomb = Math.random() < cfg.bombChance;
-  holes[i].classList.add(isBomb ? 'bomb' : 'active');
-  holes[i].querySelector('.mole').textContent = isBomb ? '💣' : '🐭';
-  activeHoles[i] = isBomb ? 'bomb' : 'mole';
-  const t = setTimeout(() => {
-    if (activeHoles[i] && running) {
-      if (activeHoles[i] === 'mole') { combo = 1; updateCombo(); }
-      clearHole(i);
-    }
-  }, cfg.moleTime);
-  timers.push(t);
-  scheduleNext();
-}
-
-function scheduleNext() {
-  if (!running) return;
-  const cfg = getLevelConfig();
-  const jitter = cfg.interval * 0.4;
-  const t = setTimeout(spawnMole, cfg.interval - jitter/2 + Math.random() * jitter);
-  timers.push(t);
-}
-
-function updateCombo() {
-  comboEl.textContent = combo > 1 ? 'x' + combo : 'x1';
-  comboEl.style.color = combo >= 5 ? '#0F6E56' : combo >= 3 ? '#BA7517' : '#2c2c2a';
-}
-
-function doFlash(color) {
-  flash.style.background = color;
-  flash.style.opacity = '1';
-  setTimeout(() => { flash.style.opacity = '0'; }, 120);
-}
-
-holes.forEach(hole => {
-  hole.addEventListener('pointerdown', e => {
+holes.forEach(h=>{
+  h.addEventListener('pointerdown',e=>{
     e.preventDefault();
-    const i = parseInt(hole.dataset.i);
-    if (!running) { startGame(); return; }
-    if (!activeHoles[i]) return;
-    if (activeHoles[i] === 'bomb') {
-      score = Math.max(0, score - 5 * combo);
-      combo = 1; updateCombo();
-      hole.classList.remove('bomb'); hole.classList.add('miss');
-      doFlash('rgba(226,75,74,0.15)');
-      msgEl.textContent = '💣 폭탄! -5점'; msgEl.style.color = '#A32D2D';
-      setTimeout(() => clearHole(i), 300);
-    } else {
-      const pts = 10 * combo;
-      score += pts; hits++;
-      if (hits % 5 === 0) { level = Math.min(8, level + 1); levelEl.textContent = level; }
-      hole.classList.remove('active'); hole.classList.add('hit');
-      combo++; updateCombo();
-      doFlash('rgba(29,158,117,0.15)');
-      msgEl.textContent = combo > 2 ? '콤보 x' + combo + '! +' + pts + '점 🔥' : '+' + pts + '점';
-      msgEl.style.color = combo > 2 ? '#0F6E56' : '#888';
-      setTimeout(() => clearHole(i), 200);
+    const i=parseInt(h.dataset.i);
+    if(!running){startGame();return;}
+    if(!activeHoles[i])return;
+    if(activeHoles[i]==='bomb'){
+      score=Math.max(0,score-5*combo);combo=1;uc();
+      h.classList.remove('bomb');h.classList.add('miss');
+      doFlash('rgba(226,75,74,.18)');
+      msgEl.textContent='💣 폭탄! -5점';msgEl.style.color='#A32D2D';
+      setTimeout(()=>clr(i),300);
+    }else{
+      const pts=10*combo;score+=pts;hits++;
+      if(hits%5===0){level=Math.min(8,level+1);levelEl.textContent=level;}
+      h.classList.remove('active');h.classList.add('hit');
+      combo++;uc();doFlash('rgba(29,158,117,.18)');
+      msgEl.textContent=combo>2?'콤보 x'+combo+'! +'+pts+'점 🔥':'+'+pts+'점';
+      msgEl.style.color=combo>2?'#0F6E56':'var(--muted)';
+      setTimeout(()=>clr(i),200);
     }
-    scoreEl.textContent = score;
+    scoreEl.textContent=score;
   });
 });
 
-function startGame() {
-  if (running) return;
-  score = 0; combo = 1; level = 1; hits = 0; timeLeft = TOTAL_TIME;
-  activeHoles = {}; timers.forEach(clearTimeout); timers = [];
-  holes.forEach((_,i) => clearHole(i));
-  scoreEl.textContent = 0; comboEl.textContent = 'x1';
-  comboEl.style.color = '#2c2c2a';
-  levelEl.textContent = 1;
-  timerFill.style.width = '100%'; timerFill.style.background = '#1D9E75';
-  msgEl.textContent = '두더지를 잡아라!'; msgEl.style.color = '#888';
-  running = true;
-  tickTimer = setInterval(() => {
-    timeLeft--;
-    timeEl.textContent = timeLeft;
-    const pct = Math.round((timeLeft / TOTAL_TIME) * 100);
-    timerFill.style.width = pct + '%';
-    timerFill.style.background = pct > 50 ? '#1D9E75' : pct > 25 ? '#EF9F27' : '#E24B4A';
-    if (timeLeft <= 0) endGame();
-  }, 1000);
-  spawnMole();
+function startGame(){
+  if(running)return;
+  score=0;combo=1;level=1;hits=0;timeLeft=TOTAL;
+  activeHoles={};timers.forEach(clearTimeout);timers=[];
+  holes.forEach((_,i)=>clr(i));
+  scoreEl.textContent=0;comboEl.textContent='x1';comboEl.style.color='var(--text)';levelEl.textContent=1;
+  timerFill.style.width='100%';timerFill.style.background='var(--green)';
+  msgEl.textContent='두더지를 잡아라!';msgEl.style.color='var(--muted)';
+  running=true;
+  tick=setInterval(()=>{
+    timeLeft--;timeEl.textContent=timeLeft;
+    const pct=Math.round((timeLeft/TOTAL)*100);
+    timerFill.style.width=pct+'%';
+    timerFill.style.background=pct>50?'var(--green)':pct>25?'var(--amb)':'var(--red)';
+    if(timeLeft<=0)endGame();
+  },1000);
+  spawn();
 }
 
-function endGame() {
-  running = false;
-  clearInterval(tickTimer);
-  timers.forEach(clearTimeout); timers = [];
-  holes.forEach((_,i) => clearHole(i));
-  const grade = score >= 300 ? '전설의 두더지 사냥꾼 🏆' : score >= 150 ? '숙련된 사냥꾼 🥈' : score >= 80 ? '연습이 필요해 🥉' : '잠이 덜 깼군요 😴';
-  msgEl.textContent = '종료! ' + score + '점 — ' + grade;
-  msgEl.style.color = '#2c2c2a';
-  timerFill.style.width = '0%';
+function endGame(){
+  running=false;clearInterval(tick);
+  timers.forEach(clearTimeout);timers=[];
+  holes.forEach((_,i)=>clr(i));
+  finalScore=score;timerFill.style.width='0%';
+  document.getElementById('modal-score').textContent=finalScore+'점';
+  document.getElementById('name-input').value='';
+  document.getElementById('name-modal').classList.add('show');
 }
 
-document.getElementById('btn-start').addEventListener('click', () => { if (!running) startGame(); });
-document.getElementById('btn-reset').addEventListener('click', () => {
-  running = false; clearInterval(tickTimer);
-  timers.forEach(clearTimeout); timers = [];
-  holes.forEach((_,i) => clearHole(i));
-  score = 0; combo = 1; level = 1; timeLeft = TOTAL_TIME;
-  scoreEl.textContent = 0; comboEl.textContent = 'x1';
-  timeEl.textContent = TOTAL_TIME; levelEl.textContent = 1;
-  timerFill.style.width = '100%'; timerFill.style.background = '#1D9E75';
-  msgEl.textContent = '탭해서 시작!'; msgEl.style.color = '#888';
-  activeHoles = {};
-});
+function closeModal(){
+  document.getElementById('name-modal').classList.remove('show');
+  const g=finalScore>=300?'전설 🏆':finalScore>=150?'숙련 🥈':finalScore>=80?'연습 🥉':'입문 😴';
+  msgEl.textContent='종료! '+finalScore+'점 — '+g;msgEl.style.color='var(--text)';
+}
+
+async function submitScore(){
+  const name=document.getElementById('name-input').value.trim()||'익명';
+  document.getElementById('name-modal').classList.remove('show');
+  msgEl.textContent='등록 중...';msgEl.style.color='var(--muted)';
+  try{
+    let board=await getBoard();
+    board.push({name,score:finalScore,time:new Date().toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})});
+    board.sort((a,b)=>b.score-a.score);
+    board=board.slice(0,20);
+    await saveBoard(board);
+    msgEl.textContent='등록 완료! '+finalScore+'점';msgEl.style.color='var(--green)';
+  }catch(e){
+    msgEl.textContent='등록 실패. 점수: '+finalScore;msgEl.style.color='var(--red)';
+  }
+}
+
+function resetGame(){
+  running=false;clearInterval(tick);
+  timers.forEach(clearTimeout);timers=[];
+  holes.forEach((_,i)=>clr(i));
+  score=0;combo=1;level=1;timeLeft=TOTAL;
+  scoreEl.textContent=0;comboEl.textContent='x1';timeEl.textContent=TOTAL;levelEl.textContent=1;
+  timerFill.style.width='100%';timerFill.style.background='var(--green)';
+  msgEl.textContent='탭해서 시작!';msgEl.style.color='var(--muted)';activeHoles={};
+}
+
+document.getElementById('btn-start').addEventListener('click',()=>{if(!running)startGame();});
+document.getElementById('btn-reset').addEventListener('click',resetGame);
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitScore();});
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────
+async function loadBoard(){
+  const st=document.getElementById('board-status');
+  const list=document.getElementById('board-list');
+  st.style.display='block';st.textContent='불러오는 중...';list.innerHTML='';
+  try{
+    const board=await getBoard();
+    st.style.display='none';
+    if(!board.length){
+      st.style.display='block';
+      st.textContent='아직 기록이 없어요. 첫 전설이 되어보세요! 🏆';return;
+    }
+    board.forEach((e,idx)=>{
+      const rc=idx===0?'gold':idx===1?'silver':idx===2?'bronze':'';
+      const ri=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':(idx+1)+'위';
+      const d=document.createElement('div');d.className='board-item';
+      d.innerHTML=`<div class="board-rank ${rc}">${ri}</div><div class="board-name">${e.name}</div><div style="text-align:right"><div class="board-score">${e.score}점</div><div class="board-time">${e.time||''}</div></div>`;
+      list.appendChild(d);
+    });
+  }catch(err){st.style.display='block';st.textContent='불러오기 실패 😢';}
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['game','board'][i]===name));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',['panel-game','panel-board'][i]==='panel-'+name));
+  if(name==='board')loadBoard();
+}
+
+loadBoard();
 </script>
 </body>
 </html>
